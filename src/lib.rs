@@ -126,13 +126,14 @@ fn lit_to_ty(lit: &syn::Lit) -> Result<syn::Type, Error> {
         syn::Lit::Char(_) => syn::parse_str("char").unwrap(),
         syn::Lit::Int(int) => {
             if int.suffix().is_empty() {
-                syn::parse_str("i32").unwrap()
+                syn::parse_str("u32").unwrap()
             } else {
                 syn::parse_str(int.suffix()).unwrap()
             }
         }
-        syn::Lit::Float(_) => syn::parse_str("f64").unwrap(),
+
         syn::Lit::Bool(_) => syn::parse_str("bool").unwrap(),
+        // syn::Lit::Float(_) => syn::parse_str("f64").unwrap(), // floating-point types cannot be used in patterns
         // syn::Lit::Verbatim(_) => syn::parse_str("&'static str").unwrap(),
         _ => return Err(Error::new(lit.span(), "This type is not supported")),
     };

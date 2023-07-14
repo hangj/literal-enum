@@ -1,6 +1,6 @@
 # literal-enum
 
-This macro can automatically implement the TryFrom<Literal> trait and Into<Literal> trait where the `literal` must be only one type
+Automatically implements the `TryFrom<Literal>` trait and `Into<Literal>` trait for an `enum` where the `literal`s must be the same type(one of [`&'static str`, `&'static [u8]`, `u8`, `char`, `u32`, `bool`])
 
 ## Usage Example
 
@@ -8,20 +8,18 @@ This macro can automatically implement the TryFrom<Literal> trait and Into<Liter
 use literal_enum::LiteralEnum;
 
 #[derive(LiteralEnum)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
 enum Command {
     /// increment pointer
     #[lit = b'>']
-    IncrementPointer, // >
+    IncrementPointer,
     /// decrement pointer
     #[lit = b'<']
-    DecrementPointer, // <
+    DecrementPointer,
 }
 
-let b = b'>';
-let cmd = Command::try_from(b).unwrap();
-assert!(matches!(cmd, Command::IncrementPointer));
-
-let b: u8 = cmd.into();
+assert_eq!(Command::try_from(b'>').unwrap(), Command::IncrementPointer);
+let b: u8 = Command::IncrementPointer.into();
 assert_eq!(b, b'>');
 ```
 
