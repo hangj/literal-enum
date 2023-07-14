@@ -1,0 +1,21 @@
+[package]
+name = "literal-enum"
+version = "0.1.0"
+edition = "2021"
+authors = ["hangj <guijie.han@gmail.com>"]
+readme = "README.md"
+description = "Convert an [`enum`] to a [`literal`], and try to convert it back"
+license = "MIT"
+repository = "https://github.com/hangj/literal-enum"
+documentation = "https://docs.rs/literal-enum/"
+exclude = ["/.github/*", "/.gitattributes", "/appveyor.yml", "/Changelog.md", "/clippy.toml", "/codecov.yml"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0.64"
+quote = "1.0.29"
+syn = { version = "2.0.25", features = ["full"] }
