@@ -2,6 +2,8 @@
 
 Automatically implements the `TryFrom<Literal>` trait and `Into<Literal>` trait for an `enum` where the `literal`s must be the same type(one of [`&'static str`, `&'static [u8]`, `u8`, `char`, `u32`, `bool`])
 
+If you need to convert other interger type(i8, i16, u16, i32, i64, u64, i128, u128), you can use [intype-enum](https://crates.io/crates/inttype-enum)
+
 ## Usage Example
 
 ```rust
