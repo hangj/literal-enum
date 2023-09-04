@@ -3,7 +3,7 @@
 use proc_macro::TokenStream;
 use proc_macro2::{TokenStream as TokenStream2, Literal};
 use quote::ToTokens;
-use syn::{parse_macro_input, spanned::Spanned, Error, ItemEnum, Attribute, parse_quote, Lit};
+use syn::{parse_macro_input, spanned::Spanned, Error, ItemEnum, parse_quote, Lit};
 
 /// auto implement the TryFrom<Literal> trait and Into<Literal> trait
 /// where the `literal` must be only one type
