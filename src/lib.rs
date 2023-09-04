@@ -1,9 +1,9 @@
 #![doc = include_str!("../README.md")]
 
 use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{TokenStream as TokenStream2, Literal};
 use quote::ToTokens;
-use syn::{parse_macro_input, spanned::Spanned, Error, ItemEnum};
+use syn::{parse_macro_input, spanned::Spanned, Error, ItemEnum, Attribute, parse_quote, Lit};
 
 /// auto implement the TryFrom<Literal> trait and Into<Literal> trait
 /// where the `literal` must be only one type
@@ -39,12 +39,12 @@ fn real_easy(item: ItemEnum) -> Result<TokenStream2, Error> {
         }
 
         let attr = match var.attrs.iter().find(|attr| attr.path().is_ident("lit")) {
-            Some(attr) => attr,
+            Some(attr) => attr.clone(),
             None => {
-                return Err(Error::new(
-                    var.span(),
-                    "every variant must provide the `lit` attribute, like `#[lit = 42]`",
-                ));
+                let lit = Lit::new(Literal::string(&var.ident.to_string()));
+                parse_quote! {
+                    #[lit = #lit]
+                }
             }
         };
 

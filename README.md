@@ -25,4 +25,13 @@ let b: u8 = Command::IncrementPointer.into();
 assert_eq!(b, b'>');
 ```
 
+```rust
+#[derive(LiteralEnum)]
+enum E {
+    A,
+    AAAA,
+}
 
+let s: &'static str = E::A.into();
+assert_eq!(s, "A");
+```
