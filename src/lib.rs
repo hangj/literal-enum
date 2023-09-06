@@ -96,8 +96,14 @@ fn derive(
     lit_ty: syn::Type,
     lit_value: Vec<syn::Lit>,
 ) -> TokenStream2 {
+    let life = if let syn::Type::Reference(ref type_reference) = lit_ty {
+        &type_reference.lifetime
+    } else {
+        &None
+    };
+
     quote::quote! {
-        impl TryFrom<#lit_ty> for #enum_ident {
+        impl<#life> TryFrom<#lit_ty> for #enum_ident {
             type Error = #lit_ty;
 
             fn try_from(value: #lit_ty) -> Result<Self, Self::Error> {
@@ -108,7 +114,7 @@ fn derive(
             }
         }
 
-        impl Into<#lit_ty> for #enum_ident {
+        impl<#life> Into<#lit_ty> for #enum_ident {
             fn into(self) -> #lit_ty {
                 match self {
                     #(Self::#var_ident => #lit_value,)*
@@ -120,8 +126,8 @@ fn derive(
 
 fn lit_to_ty(lit: &syn::Lit) -> Result<syn::Type, Error> {
     let ty = match lit {
-        syn::Lit::Str(_) => syn::parse_str("&'static str").unwrap(),
-        syn::Lit::ByteStr(_) => syn::parse_str("&'static [u8]").unwrap(),
+        syn::Lit::Str(_) => syn::parse_str("&'a str").unwrap(),
+        syn::Lit::ByteStr(_) => syn::parse_str("&'a [u8]").unwrap(),
         syn::Lit::Byte(_) => syn::parse_str("u8").unwrap(),
         syn::Lit::Char(_) => syn::parse_str("char").unwrap(),
         syn::Lit::Int(int) => {
