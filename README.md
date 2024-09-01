@@ -26,6 +26,8 @@ assert_eq!(b, b'>');
 ```
 
 ```rust
+use literal_enum::LiteralEnum;
+
 #[derive(LiteralEnum)]
 enum E {
     A,

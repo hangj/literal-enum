@@ -1,5 +1,7 @@
 #![doc = include_str!("../README.md")]
 
+use std::ffi::CString;
+
 use proc_macro::TokenStream;
 use proc_macro2::{TokenStream as TokenStream2, Literal};
 use quote::ToTokens;
@@ -24,6 +26,7 @@ fn real_easy(item: ItemEnum) -> Result<TokenStream2, Error> {
         return Err(Error::new(item.generics.span(), "generics is forbidden"));
     }
 
+    let mut first_lit: Option<syn::Lit> = None;
     let mut ty: Option<syn::Type> = None;
     let mut lit_value = Vec::new();
     let mut var_ident = Vec::new();
@@ -41,7 +44,37 @@ fn real_easy(item: ItemEnum) -> Result<TokenStream2, Error> {
         let attr = match var.attrs.iter().find(|attr| attr.path().is_ident("lit")) {
             Some(attr) => attr.clone(),
             None => {
-                let lit = Lit::new(Literal::string(&var.ident.to_string()));
+                let lit = if let Some(ref lit) = first_lit {
+                    match lit {
+                        Lit::Str(_) => Lit::new(Literal::string(&var.ident.to_string())),
+                        Lit::ByteStr(_) => Lit::new(Literal::byte_string(var.ident.to_string().as_bytes())),
+                        Lit::CStr(_) => Lit::new(Literal::c_string(CString::new(var.ident.to_string()).unwrap().as_c_str())),
+                        Lit::Byte(_) => {
+                            let ident = var.ident.to_string();
+                            if ident.len() != 1 {
+                                return Err(Error::new(var.ident.span(), "Unable to convert this value to a Byte"));
+                            }
+                            Lit::new(Literal::byte_character(ident.as_bytes()[0]))
+                        },
+                        Lit::Char(_) => {
+                            let ident = var.ident.to_string();
+                            if ident.len() != 1 {
+                                return Err(Error::new(var.ident.span(), "Unable to convert this value to a Char"));
+                            }
+                            Lit::new(Literal::character(ident.chars().next().unwrap()))
+                        },
+                        // Lit::Int(_) => todo!(),
+                        // Lit::Bool(_) => todo!(),
+                        // Lit::Float(_) => todo!(),
+                        // Lit::Verbatim(_) => todo!(),
+                        _ => return Err(Error::new(var.ident.span(), "Unable to infer the type of this value")),
+                    }
+                } else {
+                    Lit::new(Literal::string(&var.ident.to_string()))
+                };
+
+                // eprintln!("lit: {}", lit.to_token_stream().to_string());
+
                 parse_quote! {
                     #[lit = #lit]
                 }
@@ -55,6 +88,10 @@ fn real_easy(item: ItemEnum) -> Result<TokenStream2, Error> {
         let syn::Expr::Lit(syn::ExprLit{ref lit, ..}) = name_value.value else {
             return Err(Error::new(name_value.span(), "the value should be a literal"));
         };
+
+        if first_lit.is_none() {
+            first_lit = Some(lit.clone());
+        }
 
         if let Some(ref t) = ty {
             if t.to_token_stream().to_string() != lit_to_ty(lit)?.to_token_stream().to_string() {
@@ -107,10 +144,16 @@ fn derive(
             type Error = #lit_ty;
 
             fn try_from(value: #lit_ty) -> Result<Self, Self::Error> {
-                match value {
-                    #(#lit_value => Ok(Self::#var_ident),)*
-                    _ => Err(value),
-                }
+                // // error: cannot use unsized non-slice type `CStr` in constant patterns
+                // match value {
+                //     #(#lit_value => Ok(Self::#var_ident),)*
+                //     _ => Err(value),
+                // }
+
+                #(if #lit_value == value {
+                    return Ok(Self::#var_ident);
+                })*
+                Err(value)
             }
         }
 
@@ -126,11 +169,12 @@ fn derive(
 
 fn lit_to_ty(lit: &syn::Lit) -> Result<syn::Type, Error> {
     let ty = match lit {
-        syn::Lit::Str(_) => syn::parse_str("&'a str").unwrap(),
-        syn::Lit::ByteStr(_) => syn::parse_str("&'a [u8]").unwrap(),
-        syn::Lit::Byte(_) => syn::parse_str("u8").unwrap(),
-        syn::Lit::Char(_) => syn::parse_str("char").unwrap(),
-        syn::Lit::Int(int) => {
+        Lit::Str(_) => syn::parse_str("&'a str").unwrap(),
+        Lit::ByteStr(_) => syn::parse_str("&'a [u8]").unwrap(),
+        Lit::CStr(_) => syn::parse_str("&'a std::ffi::CStr").unwrap(),
+        Lit::Byte(_) => syn::parse_str("u8").unwrap(),
+        Lit::Char(_) => syn::parse_str("char").unwrap(),
+        Lit::Int(int) => {
             if int.suffix().is_empty() {
                 syn::parse_str("u32").unwrap()
             } else {
@@ -138,7 +182,7 @@ fn lit_to_ty(lit: &syn::Lit) -> Result<syn::Type, Error> {
             }
         }
 
-        syn::Lit::Bool(_) => syn::parse_str("bool").unwrap(),
+        Lit::Bool(_) => syn::parse_str("bool").unwrap(),
         // syn::Lit::Float(_) => syn::parse_str("f64").unwrap(), // floating-point types cannot be used in patterns
         // syn::Lit::Verbatim(_) => syn::parse_str("&'static str").unwrap(),
         _ => return Err(Error::new(lit.span(), "This type is not supported")),
