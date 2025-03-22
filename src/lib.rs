@@ -150,17 +150,21 @@ fn derive(
                 //     _ => Err(value),
                 // }
 
-                #(if #lit_value == value {
-                    return Ok(Self::#var_ident);
-                })*
+                #(
+                    if #lit_value == value {
+                        return Ok(Self::#var_ident);
+                    }
+                )*
                 Err(value)
             }
         }
 
-        impl<#life> Into<#lit_ty> for #enum_ident {
-            fn into(self) -> #lit_ty {
-                match self {
-                    #(Self::#var_ident => #lit_value,)*
+        impl<#life> From<#enum_ident> for #lit_ty {
+            fn from(value: #enum_ident) -> Self {
+                match value {
+                    #(
+                        #enum_ident::#var_ident => #lit_value,
+                    )*
                 }
             }
         }
@@ -171,7 +175,7 @@ fn lit_to_ty(lit: &syn::Lit) -> Result<syn::Type, Error> {
     let ty = match lit {
         Lit::Str(_) => syn::parse_str("&'a str").unwrap(),
         Lit::ByteStr(_) => syn::parse_str("&'a [u8]").unwrap(),
-        Lit::CStr(_) => syn::parse_str("&'a std::ffi::CStr").unwrap(),
+        Lit::CStr(_) => syn::parse_str("&'a core::ffi::CStr").unwrap(),
         Lit::Byte(_) => syn::parse_str("u8").unwrap(),
         Lit::Char(_) => syn::parse_str("char").unwrap(),
         Lit::Int(int) => {
